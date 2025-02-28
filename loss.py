@@ -5,10 +5,10 @@ def mse(y_true, y_pred):
 
 # MSE loss function derivative with respect to predicted vaules y^
 def mse_prime(y_true, y_pred):
-    n = len(y_pred)
-    return -2/n * sum(y_true - y_pred)
+    n = len(y_pred)  # lub np.size()
+    return -2/n * (y_true - y_pred)
+    # gradients for backprop are calculated per yi, so we need a vector
 
-    # lub 2/n * np.sum(y_pred - y_true), na odwrót
 
 
 """
@@ -20,10 +20,8 @@ d (y-y^)^2 / d y^ = d (y-y^)^2 / d y-y^  *  d y-y^ / d y^
 
 = 2*(y-y^) * -1    (bo kwadrat schodzi do 2, a w drugim y=>0, y^=>1)
 
-gdy dodamy do tego sumę i dzielenie przez n, to mamy
--2/n * sum(y-y^)
-lub
-sum(2(y-y^) * -1) / n
+więc d mse / d y^ 
+= -2*(y-y^) / n   <- gradient per yi, nie całkowity
 
 """
 
