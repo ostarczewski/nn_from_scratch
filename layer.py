@@ -30,3 +30,4 @@ class Dense(Layer):
 
     def backward(self, output_grad, learning_rate):
         raise NotImplementedError("Not implemented yet")
+        # jeżeli chcemy mieć możliwość wyboru optimisera, to trzeba będzie w jakiś sposób powiedzieć o tym każdemu layerowi
