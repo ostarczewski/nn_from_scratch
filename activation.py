@@ -28,14 +28,14 @@ class ReLU(Activation):
 
 
 class LeakyReLU(Activation):
-        def __init__(self, slope = 0.01):
-            self.slope = slope
+    def __init__(self, slope = 0.01):
+        self.slope = slope
 
-            def leaky_relu(x):
-                return np.maximum(0, x) + self.slope * np.minimum(0, x)
+        def leaky_relu(x):
+            return np.maximum(0, x) + self.slope * np.minimum(0, x)
 
-            def leaky_relu_prime(x):
-                return np.where(x > 0, 1, self.slope)
-            
-            super().__init__(leaky_relu, leaky_relu_prime)
+        def leaky_relu_prime(x):
+            return np.where(x > 0, 1, self.slope)
+        
+        super().__init__(leaky_relu, leaky_relu_prime)
 
