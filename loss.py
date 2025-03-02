@@ -1,18 +1,38 @@
 import numpy as np
 
-def mse(y_true, y_pred):
-    return np.mean((y_true - y_pred)**2)
 
-# MSE loss function derivative with respect to predicted vaules y^
-def mse_prime(y_true, y_pred):
-    n = len(y_true)  # lub np.size() lub .shape[0]
-    return -2/n * (y_true - y_pred)
+class Loss:
+    def __init__(self, loss, loss_prime):
+        self.loss = loss
+        self.loss_prime = loss_prime
+
+    def get_loss(self, y_true, y_pred):
+        return self.loss(y_true, y_pred)
+
+    def get_grad(self, y_true, y_pred):
+        return self.loss_prime(y_true, y_pred)
+    
+
+class MeanSquaredError(Loss):
+    def __init__(self):
+        def mse(y_true, y_pred):
+            return np.mean((y_true - y_pred)**2)
+
+        # MSE loss function derivative with respect to predicted vaules y^
+        def mse_prime(y_true, y_pred):
+            n = len(y_true)  # lub np.size() lub .shape[0]
+            return -2/n * (y_true - y_pred)
+        
+        super().__init__(mse, mse_prime)
+
+
+
     # gradients for backprop are calculated per yi, so we need a vector
 
 
 
 """
-czyli
+wytłumaczenie MSE prime
 d (y-y^)^2 / d y^
 
 chain rule
