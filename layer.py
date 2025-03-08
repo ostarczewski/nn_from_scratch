@@ -1,12 +1,15 @@
 import numpy as np
 
-# base layer to later inherit from
+# TODO network to powinien byc obiekt, ktory tworzymy
+# dajemy mu parametry sieci, optimiser, 
+# weight init metod i bias init valule jako opcjonalne
 
 class Layer:
     def __init__(self):
         self.input = None
         self.output = None
     
+    # forward backward needed?
     def forward(self, input):
         pass
 
@@ -22,12 +25,14 @@ class Dense(Layer):
         self.bias = np.zeros(output_size)
         # self.bias = np.full(output_size, 0.01)  # można dać 0.01 dla ReLU
 
-
     def forward(self, input):
         self.input = input 
         self.output = self.input @ self.weights + self.bias
-        # [1,input] @ [input,output] + [1,output]  =>  [1,output]
+        # [batch,input] @ [input,output] + [1,output]  =>  [batch,output]
 
     def backward(self, output_grad, learning_rate):
         raise NotImplementedError("Not implemented yet")
         # jeżeli chcemy mieć możliwość wyboru optimisera, to trzeba będzie w jakiś sposób powiedzieć o tym każdemu layerowi
+
+
+# pip install cupy-cuda12x
