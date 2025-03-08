@@ -20,7 +20,7 @@ class MeanSquaredError(Loss):
 
         # MSE loss function derivative with respect to predicted vaules y^
         def mse_prime(y_true, y_pred):
-            n = len(y_true)  # lub np.size() lub .shape[0]
+            n = np.size(y_true)
             return -2/n * (y_true - y_pred)
         
         super().__init__(mse, mse_prime)
@@ -46,5 +46,5 @@ więc d mse / d y^
 """
 
 def cross_entropy_loss(y_true, y_pred):
-    n = len(y_true)
+    n = np.size(y_true)
     return -sum(y_true * np.log(y_pred + 1e-9)) / n  # epsilon to avoid 0 log, div by N to account for batch size

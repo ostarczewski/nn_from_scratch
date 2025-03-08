@@ -1,7 +1,7 @@
 import numpy as np
 from layer import Layer
 
-# TODO parametrical relu
+# TODO parametrical relu, def backward będzie w nim do zmiany?
 
 class Activation(Layer):
     def __init__(self, activation, activation_prime):
@@ -13,7 +13,8 @@ class Activation(Layer):
         return self.activation(self.input)
     
     def backward(self, output_grad, learning_rate):
-        raise NotImplementedError("Not implemented yet")
+        activation_grad = self.activation_prime(self.input)
+        return np.multiply(output_grad, activation_grad)
 
 
 class ReLU(Activation):
