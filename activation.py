@@ -1,7 +1,10 @@
 import numpy as np
 from layer import Layer
 
-# TODO parametrical relu, def backward będzie w nim do zmiany?
+# TODO parametric relu, def backward będzie w nim do zmiany?
+# żeby PReLU działało taka warstwa będzie musiała mieć serię wag a, które będą modyfikowalne przez back prop
+# czyli zamiast self.slope będzie self.params = np.array([0.01, 0.02, 0.01, ...])
+# i forward będzie musiało przepuszczać każdy odpowiedni input przez każde odpowiednie PReLU
 
 class Activation(Layer):
     def __init__(self, activation, activation_prime):
