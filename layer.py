@@ -14,7 +14,7 @@ class Layer:
     def forward(self, input):
         pass
 
-    def backward(self, output_grad, learning_rate):
+    def backward(self, output_grad, learning_rate, solver):
         pass
 
 
@@ -29,12 +29,23 @@ class Dense(Layer):
 
     def forward(self, input):
         self.input = input 
-        return self.input @ self.weights + self.bias
+        return np.dot(self.input, self.weights) + self.bias
         # [batch,input] @ [input,output] + [1,output]  =>  [batch,output]
 
-    def backward(self, output_grad, learning_rate):
-        raise NotImplementedError("Not implemented yet")
-        # jeżeli chcemy mieć możliwość wyboru optimisera, to trzeba będzie w jakiś sposób powiedzieć o tym każdemu layerowi
+    def backward(self, output_grad, learning_rate, solver):
+        # output grad = grad l
+        # input grad = w l * grad l
+        # grad l-1 = f'(z l-1) * w l * grad l
 
+        # output grad -> batch x output
+        # input grad  -> batch x input
+        # batch x input = batch x output * ouput x input -> w.T
+        
+        # param update
+        self.weights, self.bias = solver(self.input, self.weights, self.bias, learning_rate, output_grad)
+
+        # w l * ouput grad calculation to pass the gradient further
+        input_grad = np.dot(output_grad, self.weights.T)
+        return input_grad
 
 # pip install cupy-cuda12x

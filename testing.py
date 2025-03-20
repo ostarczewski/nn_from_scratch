@@ -2,7 +2,13 @@ from layer import Dense
 from activation import ReLU
 import numpy as np
 
-x1 = np.array([1.5, 2.4, 3])
+            #  x1   x2   x3
+x = np.array([[1.5, 2.4, 3.0],
+              [1.0, 2.0, 3.6],
+              [1.0, 2.0, 3.7],
+              [1.2, 2.1, 2.6],
+              [1.4, 2.0, 3.8]])
+# size: batch x liczba cech
 
 network = [Dense(3,10), ReLU(), Dense(10,1)]
 
@@ -12,8 +18,8 @@ Base weights:
 {network[2].weights}
 """)
 
-output = x1
+y_pred = x
 for layer in network:
-    output = layer.forward(output)
+    y_pred = layer.forward(y_pred)
 
-print(output)
+print(y_pred)
