@@ -5,6 +5,7 @@ from layer import Layer
 
 class Activation(Layer):
     def __init__(self, activation, activation_prime):
+        super().__init__()
         self.activation = activation
         self.activation_prime = activation_prime
 
@@ -18,7 +19,7 @@ class Activation(Layer):
 
 
 class ReLU(Activation):
-    def __init__(self):    
+    def __init__(self):
         def relu(x):
             return np.maximum(0, x)
 

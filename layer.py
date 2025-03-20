@@ -6,10 +6,11 @@ import numpy as np
 
 class Layer:
     def __init__(self):
+        # po co to wgl jest?
         self.input = None
         self.output = None
     
-    # forward backward needed?
+    # forward backward here just to create the structure
     def forward(self, input):
         pass
 
@@ -19,6 +20,7 @@ class Layer:
 
 class Dense(Layer):
     def __init__(self, input_size, output_size):
+        # super().__init__()   <-- i guess nie potrzebne?
         # self.weights = np.random.randn(input_size, output_size)                               # random initialization
         self.weights = np.random.normal(0, np.sqrt(2/input_size), (input_size, output_size))    # He initialization
         # N ~ zero avg, sqrt(2/input_size) std
@@ -27,7 +29,7 @@ class Dense(Layer):
 
     def forward(self, input):
         self.input = input 
-        self.output = self.input @ self.weights + self.bias
+        return self.input @ self.weights + self.bias
         # [batch,input] @ [input,output] + [1,output]  =>  [batch,output]
 
     def backward(self, output_grad, learning_rate):
