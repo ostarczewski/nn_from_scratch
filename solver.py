@@ -1,6 +1,7 @@
 import numpy as np
+from typing import Tuple
 
-def SGD(input, weights, bias, learning_rate, output_grad):
+def SGD(input: np.ndarray, weights: np.ndarray, bias: np.ndarray, learning_rate: float, output_grad: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     # we need to calculate weights_grad
     # output grad = grad l
     # w = w - lr * dL wrt dW

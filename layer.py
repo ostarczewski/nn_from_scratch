@@ -1,8 +1,7 @@
 import numpy as np
 
-# TODO network to powinien byc obiekt, ktory tworzymy
-# dajemy mu parametry sieci, optimiser, 
-# weight init metod i bias init valule jako opcjonalne
+# TODO
+# weight init metod i bias init valule jako opcjonalne, ale to chyba już w Network
 
 class Layer:
     def __init__(self):

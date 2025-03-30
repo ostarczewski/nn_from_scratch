@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Union
 
 
 class Loss:
@@ -6,21 +7,26 @@ class Loss:
         self.loss = loss
         self.loss_prime = loss_prime
 
-    def get_loss(self, y_true, y_pred):
-        return self.loss(y_true, y_pred)
+    def get_loss(self, y_true: np.ndarray, y_pred: np.ndarray, vectorized: bool = False) -> Union[float, np.ndarray]:
+        return self.loss(y_true, y_pred, vectorized)
 
-    def get_grad(self, y_true, y_pred):
+    def get_grad(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         return self.loss_prime(y_true, y_pred)
     
 
 class MeanSquaredError(Loss):
     def __init__(self):
-        def mse(y_true, y_pred):
-            return np.mean((y_true - y_pred)**2)
+        def mse(y_true: np.ndarray, y_pred: np.ndarray, vectorized: bool = False) -> Union[float, np.ndarray]:
+            if vectorized:
+                mean_dimensions = tuple(range(1, len(y_true.shape)))  # np (1, 2, 3) jezeli dane sa wysokowymiarowe, to musimy zrobic srednia po wszystkich wymiarach (oprócz rzędów)
+                mse_vector = np.mean((y_true - y_pred)**2, axis=mean_dimensions)  # średnia po wierszach
+                return np.reshape(mse_vector, (-1,1))  # zmiana na vector kolumnowy
+            else:
+                return np.mean((y_true - y_pred)**2)
 
         # MSE loss function derivative with respect to predicted vaules y^
-        def mse_prime(y_true, y_pred):
-            n = np.size(y_true)
+        def mse_prime(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+            n = y_true.shape[0]
             return -2/n * (y_true - y_pred)
         
         super().__init__(mse, mse_prime)
@@ -46,5 +52,5 @@ więc d mse / d y^
 """
 
 def cross_entropy_loss(y_true, y_pred):
-    n = np.size(y_true)
-    return -sum(y_true * np.log(y_pred + 1e-9)) / n  # epsilon to avoid 0 log, div by N to account for batch size
+    n = y_true.shape[0]
+    return -sum(y_true * np.log(y_pred + 1e-9)) / n  # epsilon to avoid 0 log, div by N to account for batch size <- this will be handled in the network code
