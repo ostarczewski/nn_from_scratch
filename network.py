@@ -14,10 +14,13 @@ class Network:
         self.loss = loss
         self.solver = solver
 
-    def predict(self, input: np.ndarray) -> np.ndarray:
+    def forward(self, input: np.ndarray, training=True) -> np.ndarray:
         for layer in self.layers:
-            input = layer.forward(input)
+            input = layer.forward(input, training=training)
         return input
+
+    def predict(self, input: np.ndarray) -> np.ndarray:
+        self.forward(input, training=False)
     
     def backward(self, y_true: np.ndarray, y_pred: np.ndarray, learning_rate: float):
         grad = self.loss.get_grad(y_true, y_pred)
@@ -47,7 +50,7 @@ class Network:
 
             for batch in data:
                 # forward pass
-                y_pred = self.predict(batch['x_train'])
+                y_pred = self.forward(batch['x_train'])
 
                 # calculate loss
                 total_epoch_loss += np.sum(self.loss.get_loss(batch['y_train'], y_pred, vectorized=True))  # sum of all the errors from each observation 
@@ -62,3 +65,7 @@ class Network:
 
 # TODO shuffle & batch
 # TODO store loss for plots
+
+# TODO forward different for training and inference (dropout, later maybe batch norm for cnn)
+
+# pip install cupy-cuda12x

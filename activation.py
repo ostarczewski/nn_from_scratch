@@ -12,9 +12,10 @@ class Activation(Layer):
         self.activation = activation
         self.activation_prime = activation_prime
 
-    def forward(self, input):
-        self.input = input
-        return self.activation(self.input)
+    def forward(self, input, training):
+        if training:
+            self.input = input 
+        return self.activation(input)
     
     def backward(self, output_grad, learning_rate):
         activation_grad = self.activation_prime(self.input)
@@ -37,7 +38,7 @@ class LeakyReLU(Activation):
         self.slope = slope
 
         def leaky_relu(x):
-            return np.maximum(0, x) + self.slope * np.minimum(0, x)
+            return self.slope * np.minimum(0, x) + np.maximum(0, x)
 
         def leaky_relu_prime(x):
             return np.where(x > 0, 1, self.slope)
