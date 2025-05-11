@@ -33,10 +33,6 @@ class MeanSquaredError(Loss):
 
 
 
-    # gradients for backprop are calculated per yi, so we need a vector
-
-
-
 """
 wytłumaczenie MSE prime
 d (y-y^)^2 / d y^
@@ -50,6 +46,9 @@ więc d mse / d y^
 = -2*(y-y^) / n   <- gradient per yi, nie całkowity
 
 """
+
+
+# TODO log loss & binary log loss
 
 def cross_entropy_loss(y_true, y_pred):
     n = y_true.shape[0]

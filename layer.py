@@ -1,8 +1,5 @@
 import numpy as np
 
-# TODO
-# weight init metod i bias init valule jako opcjonalne (maybe)
-
 class Layer:
     def __init__(self):
         self.input = None
@@ -65,5 +62,7 @@ class Dropout(Layer):
 
     def backward(self, output_grad: np.ndarray, learning_rate: float):
         return np.multiply(output_grad, self.mask)
-    
-    # TODO maybe set a random seed?
+
+
+# TODO
+# weight init metod i bias init valule jako opcjonalne (maybe)
