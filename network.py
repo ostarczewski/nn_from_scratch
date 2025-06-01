@@ -1,7 +1,10 @@
 import numpy as np
 from layer import Layer
 from loss import Loss
+from solver import Solver
+from data import Dataset
 from typing import List
+
 
 class Network:
     def __init__(self, layers: List[Layer]):
@@ -10,7 +13,7 @@ class Network:
         self.solver = None
         self.learning_rate = None
 
-    def compile(self, loss: Loss, solver):
+    def compile(self, loss: Loss, solver: Solver):
         self.loss = loss
         self.solver = solver
 
@@ -22,29 +25,26 @@ class Network:
     def predict(self, input: np.ndarray) -> np.ndarray:
         return self.forward(input, training=False)
     
-    def backward(self, y_true: np.ndarray, y_pred: np.ndarray, learning_rate: float):
-        grad = self.loss.get_grad(y_true, y_pred)  # will work when loss is a class
+    def backward(self, y_true: np.ndarray, y_pred: np.ndarray):
+        grad = self.loss.get_grad(y_true, y_pred)
         for layer in reversed(self.layers):
-            grad = layer.backward(grad, learning_rate, self.solver)
+            grad = layer.backward(grad, self.solver)
 
-    def train(self, dataset, epochs: int, learning_rate: float):
-        
-        dataset.preprocess()
-
+    def train(self, dataset: Dataset, epochs: int):
         for epoch in range(1, epochs+1):
             total_epoch_loss = 0
 
-            for batch in dataset:
+            for x_train, y_train in dataset:  # same as for batch in dataset:
                 # forward pass
-                y_pred = self.forward(batch['x_train'])
+                y_pred = self.forward(x_train)
 
                 # calculate loss
-                total_epoch_loss += np.sum(self.loss.get_loss(batch['y_train'], y_pred, vectorized=True))  # sum of all the errors from each observation 
+                total_epoch_loss += np.sum(self.loss.get_loss(y_train, y_pred, vectorized=True))  # sum of all the errors from each observation 
 
                 # backward pass
-                self.backward(batch['y_train'], y_pred, learning_rate)
+                self.backward(y_train, y_pred)
 
-            avg_epoch_loss = total_epoch_loss / dataset.x_train.shape[0]  # works even for smaller last batch
+            avg_epoch_loss = total_epoch_loss / len(dataset)  # works even for smaller last batch
 
             print(f"Epoch {epoch}/{epochs} - Loss: {avg_epoch_loss:.4f}")
 

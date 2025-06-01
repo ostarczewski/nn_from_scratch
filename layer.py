@@ -1,4 +1,5 @@
 import numpy as np
+from solver import Solver
 
 class Layer:
     def __init__(self):
@@ -8,7 +9,7 @@ class Layer:
     def forward(self, input: np.ndarray, training: bool):
         pass
 
-    def backward(self, output_grad: np.ndarray, learning_rate: float):
+    def backward(self, output_grad: np.ndarray, solver: Solver):
         pass
 
 
@@ -27,7 +28,7 @@ class Dense(Layer):
         return np.dot(input, self.weights) + self.bias
         # [batch,input] @ [input,output] + [1,output]  =>  [batch,output]
 
-    def backward(self, output_grad: np.ndarray, learning_rate: float, solver):
+    def backward(self, output_grad: np.ndarray, solver: Solver):
         # output grad = grad l
         # input grad = w l * grad l
         # grad l-1 = f'(z l-1) * w l * grad l
@@ -40,7 +41,7 @@ class Dense(Layer):
         input_grad = np.dot(output_grad, self.weights.T)
         
         # param update
-        self.weights, self.bias = solver(self.input, self.weights, self.bias, learning_rate, output_grad)
+        self.weights, self.bias = solver.step(self.input, self.weights, self.bias, output_grad)
         
         return input_grad
 
@@ -60,7 +61,7 @@ class Dropout(Layer):
         else:
             return input
 
-    def backward(self, output_grad: np.ndarray, learning_rate: float):
+    def backward(self, output_grad: np.ndarray, solver: Solver):
         return np.multiply(output_grad, self.mask)
 
 
