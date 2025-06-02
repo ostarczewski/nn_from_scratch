@@ -11,10 +11,12 @@ class Dataset:
 
 
     def __iter__(self):
+        # always keep the dataset size updated
         data_size = len(self.x)
         if data_size != len(self.data_indexes):
             self.data_indexes = np.arange(data_size)
 
+        # shuffles the indexes instead of dataset shuffling, more efficient and doesn't change the dataset
         if self.shuffle:
             np.random.shuffle(self.data_indexes)
 

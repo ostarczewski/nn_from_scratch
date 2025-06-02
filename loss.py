@@ -33,23 +33,23 @@ class MeanSquaredError(Loss):
 
 
 
-"""
-wytłumaczenie MSE prime
-d (y-y^)^2 / d y^
 
-chain rule
-d (y-y^)^2 / d y^ = d (y-y^)^2 / d y-y^  *  d y-y^ / d y^
+# MSE prime:
+# d (y-y^)^2 / d y^
 
-= 2*(y-y^) * -1    (bo kwadrat schodzi do 2, a w drugim y=>0, y^=>1)
+# chain rule
+# d (y-y^)^2 / d y^ = d (y-y^)^2 / d y-y^  *  d y-y^ / d y^
+# = 2*(y-y^) * -1
 
-więc d mse / d y^ 
-= -2*(y-y^) / n   <- gradient per yi, nie całkowity
+# = -2*(y-y^) / n   <- gradient per yi, nie całkowity
 
-"""
 
 
 # TODO log loss & binary log loss
 
-def cross_entropy_loss(y_true, y_pred):
-    n = y_true.shape[0]
-    return -sum(y_true * np.log(y_pred + 1e-9)) / n  # epsilon to avoid 0 log, div by N to account for batch size <- this will be handled in the network code
+# def cross_entropy_loss(y_true, y_pred):
+#     n = y_true.shape[0]
+#     return -sum(y_true * np.log(y_pred + 1e-9)) / n  # epsilon to avoid 0 log, div by N to account for batch size
+# will we need to account for batch size? what about vectorized?
+# the above calculates an avg over some batch size -> we will need to get all the individual values out instead 
+# so that it works with smaller batch sizes when caclulating per epoch later

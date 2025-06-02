@@ -13,28 +13,35 @@ class Network:
         self.solver = None
         self.learning_rate = None
 
+
     def compile(self, loss: Loss, solver: Solver):
         self.loss = loss
         self.solver = solver
+
 
     def forward(self, input: np.ndarray, training=True) -> np.ndarray:
         for layer in self.layers:
             input = layer.forward(input, training=training)
         return input
 
+
     def predict(self, input: np.ndarray) -> np.ndarray:
         return self.forward(input, training=False)
     
+
     def backward(self, y_true: np.ndarray, y_pred: np.ndarray):
+        # computes the derivative of loss wrt y_pred
         grad = self.loss.get_grad(y_true, y_pred)
+        # each layer receives the previous gradient, computes new gradients to pass further and updates the params
         for layer in reversed(self.layers):
             grad = layer.backward(grad, self.solver)
+
 
     def train(self, dataset: Dataset, epochs: int):
         for epoch in range(1, epochs+1):
             total_epoch_loss = 0
 
-            for x_train, y_train in dataset:  # same as for batch in dataset:
+            for x_train, y_train in dataset:
                 # forward pass
                 y_pred = self.forward(x_train)
 
@@ -49,6 +56,5 @@ class Network:
             print(f"Epoch {epoch}/{epochs} - Loss: {avg_epoch_loss:.4f}")
 
 
-# TODO shuffle & batch
 # TODO store loss for plots
 
