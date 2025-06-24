@@ -1,4 +1,5 @@
 import numpy as np
+from layer import Layer
 from typing import Tuple
 
 # TODO SGD with momentum
@@ -8,7 +9,7 @@ class Solver:
     def __init__(self, lr: float):
         self.lr = lr
 
-    def layer_update(self, input: np.ndarray, weights: np.ndarray, bias: np.ndarray, output_grad: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def apply_gradients(self, layer: Layer, param_grad: dict):
         pass
 
 
@@ -16,29 +17,17 @@ class SGD(Solver):
     def __init__(self, lr: float):
         super().__init__(lr)
             
-    def layer_update(self, input: np.ndarray, weights: np.ndarray, bias: np.ndarray, output_grad: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        # L wrt W = L wrt Z * Z wrt W
-        # Z = A-1 * W + B (forward pass formula)
-        # Z wrt W = A-1 (input)
-        # L wrt W = grad l * A-1 (output grad * input)
+    def apply_gradients(self, layer: Layer, param_grad: dict):
+        # layer will have a empty dict if no params to update
+        if param_grad:
+            # for each param (weights, biases)
+            for param_name, grad in param_grad.items():
+                # access the parameter value (like info about weights)
+                param = getattr(layer, param_name)
 
-        # output grad -> batch x output
-        # w           -> input x output
-        # input       -> batch x input
-        # input x batch * batch x ouput <= input.T * output grad
+                # update rule for SGD
+                updated_param = param - self.lr * grad 
 
-        weights_grad = np.dot(input.T, output_grad) / input.shape[0]
-        # dot product sums the impact of each individual obs, so we need to divide the matrix by batch size
-
-
-        # b = b - lr * L wrt B
-        # Z wrt b = 1
-        # L wrt b = grad l
-
-        bias_grad = np.mean(output_grad, axis=0)
-        # avg grad of each bias over all observation in the batch
-
-        updated_weights = weights - self.lr * weights_grad
-        updated_bias = bias - self.lr * bias_grad
-        return updated_weights, updated_bias
+                # update param vaues
+                setattr(layer, param_name, updated_param)
 

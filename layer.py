@@ -8,7 +8,7 @@ class Layer:
     def forward(self, input: np.ndarray, training: bool):
         pass
 
-    def backward(self, output_grad: np.ndarray, solver: Solver):
+    def calculate_gradients(self, output_grad: np.ndarray):
         pass
 
 
@@ -28,7 +28,7 @@ class Dense(Layer):
         return np.dot(input, self.weights) + self.bias
         # [batch,input] @ [input,output] + [1,output]  =>  [batch,output]
 
-    def backward(self, output_grad: np.ndarray, solver: Solver):
+    def calculate_gradients(self, output_grad: np.ndarray):
         # output grad = derivative of loss wrt layer output
         # input grad = derivative of loss wrt layer input = derivative of loss wrt previous layer output
 
@@ -43,11 +43,27 @@ class Dense(Layer):
         # w l * ouput grad calculation to pass the gradient further
         input_grad = np.dot(output_grad, self.weights.T)
         
-        # param update
-        self.weights, self.bias = solver.layer_update(self.input, self.weights, self.bias, output_grad)
+        # L wrt W = L wrt Z * Z wrt W
+        # Z = A-1 * W + B (forward pass formula)
+        # Z wrt W = A-1 (input)
+        # L wrt W = grad l * A-1 (output grad * input)
+
+        # output grad -> batch x output
+        # w           -> input x output
+        # input       -> batch x input
+        # input x batch * batch x ouput <= input.T * output grad
+
+        weights_grad = np.dot(input.T, output_grad) / input.shape[0]
+        # dot product sums the impact of each individual obs, so we need to divide the matrix by batch size
+
+        bias_grad = np.mean(output_grad, axis=0)
+        # avg grad of each bias over all observation in the batch
         
-        # passing the input grad backwards to the preceding layer
-        return input_grad
+        # returns a dict, where key is the param name to be updated by solver
+        param_grad = {"weights": weights_grad, "bias": bias_grad}
+
+        # passing the input grad backwards to the preceding layer (and returning the grads needed for param updates)
+        return input_grad, param_grad
 
 
 class Dropout(Layer):
@@ -66,8 +82,8 @@ class Dropout(Layer):
         else:
             return input
 
-    def backward(self, output_grad: np.ndarray, solver: Solver):
-        return np.multiply(output_grad, self.mask)
+    def calculate_gradients(self, output_grad: np.ndarray):
+        return np.multiply(output_grad, self.mask), {}
 
 
 # TODO
