@@ -1,5 +1,4 @@
 import numpy as np
-from solver import Solver
 
 class Layer:
     def __init__(self):
@@ -53,7 +52,7 @@ class Dense(Layer):
         # input       -> batch x input
         # input x batch * batch x ouput <= input.T * output grad
 
-        weights_grad = np.dot(input.T, output_grad) / input.shape[0]
+        weights_grad = np.dot(self.input.T, output_grad) / self.input.shape[0]
         # dot product sums the impact of each individual obs, so we need to divide the matrix by batch size
 
         bias_grad = np.mean(output_grad, axis=0)

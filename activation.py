@@ -43,20 +43,24 @@ class LeakyReLU(Activation):
 # TODO argument if one value should be used across all channels?
 # będą komplikacje z tym 
 
-# class PReLU(Activation):
-#     def __init__(self, input_size: int, init_slope = 0.25):
-#         self.alfas = np.full(input_size, init_slope)
+class PReLU(Activation):
+    def __init__(self, input_size: int, init_slope = 0.25):
+        self.alfas = np.full(input_size, init_slope)
 
-#     def forward(self, input, training):
-#         if training:
-#             self.input = input
-#         return np.where(input >= 0, input, input * self.alfas)
+    def forward(self, input, training):
+        if training:
+            self.input = input
+        return np.where(input >= 0, input, input * self.alfas)
     
-#     def backward(self, output_grad, solver):
-#         # input grad to pass on - later
-#         input_grad = ...
+    def calculate_gradients(self, output_grad: np.ndarray):
+        # activation grad w przypadku jednego slope'u
+        # activation_grad = np.where(self.input > 0, 1, self.slope)
+        # return np.multiply(output_grad, activation_grad), {}
 
-#         slope_grad = 
+        # input grad to pass on - later
+        input_grad = ...
+
+        slope_grad = ...
 
 
 

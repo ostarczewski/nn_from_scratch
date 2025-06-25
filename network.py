@@ -22,6 +22,8 @@ class Network:
     def forward(self, input: np.ndarray, training=True) -> np.ndarray:
         for layer in self.layers:
             input = layer.forward(input, training=training)
+            # for testing
+            # print(input)
         return input
 
 
