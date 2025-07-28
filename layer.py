@@ -12,51 +12,39 @@ class Layer:
 
 
 class Dense(Layer):
-    def __init__(self, input_size: int, output_size: int):
+    def __init__(self, output_size: int, input_size: int = None):
         super().__init__()
-        # He initialization, N ~ zero avg, sqrt(2/input_size) std
-        self.weights = np.random.normal(0, np.sqrt(2/input_size), (input_size, output_size))  
+        self.output_size = output_size
+        self.input_size = input_size
 
-        self.bias = np.zeros(output_size)
-        # self.bias = np.full(output_size, 0.01)  # można dać 0.01 dla ReLU
+        self.bias = np.zeros(self.output_size)
+        self.weights = None
+
 
     def forward(self, input: np.ndarray, training: bool):
+        # initialize weights if None
+        if self.weights is None:
+            if not self.input_size:
+                self.input_size = input.shape[1]
+            # He initialization, N ~ zero avg, sqrt(2/input_size) std
+            self.weights = np.random.normal(0, np.sqrt(2/self.input_size), (self.input_size, self.output_size))
+
         # store input for backprop when training
         if training:
             self.input = input 
         return np.dot(input, self.weights) + self.bias
         # [batch,input] @ [input,output] + [1,output]  =>  [batch,output]
 
+
     def calculate_gradients(self, output_grad: np.ndarray):
-        # output grad = derivative of loss wrt layer output
-        # input grad = derivative of loss wrt layer input = derivative of loss wrt previous layer output
-
-        # output grad = grad l
-        # input grad = w l * grad l
-        # grad l-1 = f'(z l-1) * w l * grad l
-
-        # output grad -> batch x output
-        # input grad  -> batch x input
-        # batch x input = batch x output * ouput x input -> w.T
-
         # w l * ouput grad calculation to pass the gradient further
         input_grad = np.dot(output_grad, self.weights.T)
-        
-        # L wrt W = L wrt Z * Z wrt W
-        # Z = A-1 * W + B (forward pass formula)
-        # Z wrt W = A-1 (input)
-        # L wrt W = grad l * A-1 (output grad * input)
 
-        # output grad -> batch x output
-        # w           -> input x output
-        # input       -> batch x input
-        # input x batch * batch x ouput <= input.T * output grad
-
-        weights_grad = np.dot(self.input.T, output_grad) / self.input.shape[0]
         # dot product sums the impact of each individual obs, so we need to divide the matrix by batch size
-
-        bias_grad = np.mean(output_grad, axis=0)
+        weights_grad = np.dot(self.input.T, output_grad) / self.input.shape[0]
+        
         # avg grad of each bias over all observation in the batch
+        bias_grad = np.mean(output_grad, axis=0)
         
         # returns a dict, where key is the param name to be updated by solver
         param_grad = {"weights": weights_grad, "bias": bias_grad}
@@ -84,6 +72,3 @@ class Dropout(Layer):
     def calculate_gradients(self, output_grad: np.ndarray):
         return np.multiply(output_grad, self.mask), {}
 
-
-# TODO
-# weight init metod i bias init valule jako opcjonalne (maybe)
