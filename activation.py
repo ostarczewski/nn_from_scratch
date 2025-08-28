@@ -44,10 +44,15 @@ class LeakyReLU(Activation):
 # będą komplikacje z tym 
 
 class PReLU(Activation):
-    def __init__(self, input_size: int, init_slope = 0.25):
-        self.alfas = np.full(input_size, init_slope)
+    def __init__(self, init_slope = 0.25):
+        self.init_slope = init_slope
+        self.alfas = None
 
     def forward(self, input, training):
+        if self.alfas is None:
+            # auto input size detection
+            self.alfas = np.full(input.shape[1], self.init_slope)
+
         if training:
             self.input = input
         return np.where(input >= 0, input, input * self.alfas)
@@ -58,9 +63,13 @@ class PReLU(Activation):
         # return np.multiply(output_grad, activation_grad), {}
 
         # input grad to pass on - later
-        input_grad = ...
+        # prelu_derivative = np.where(self.input > 0, 1, self.slope)
+        # potem to
+        # return np.multiply(output_grad, prelu_derivative), {}
 
-        slope_grad = ...
+        # slope_grad = ...
+
+        pass
 
 
 

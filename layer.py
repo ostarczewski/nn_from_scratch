@@ -53,6 +53,37 @@ class Dense(Layer):
         return input_grad, param_grad
 
 
+class Conv2d(Layer):
+    def __init__(self, channels_in: int, channels_out: int, kernel_size: int):
+        super().__init__()
+        # expected input dimensions:
+        # (batch_size, channels, height, width)
+        self.channels_in = channels_in  # number of input channels, 1 - grayscale, 3 - rgb, equal to l-1 channles out
+        self.channels_out = channels_out  # number of kernels, also equal to output depth 
+        self.kernel_size = kernel_size  # kernel height and width
+
+        # kernel dims:
+        # (number of kernels, kernel (=input) depth, height, width)
+        self.kernels_shape = (self.channels_out, self.channels_in, self.kernel_size, self.kernel_size)
+
+        # He init for kernels
+        self.kernels = np.random.normal(
+            0, 
+            np.sqrt(2/(self.channels_in * self.kernel_size**2)),  # num of features in a kernel = depth * height * width
+            self.kernels_shape
+        )
+        self.biases = np.zeros(self.channels_out)
+        
+        # is it needed?
+        self.input_shape = None
+
+    def forward(self, input, training):
+        ...
+
+    def calculate_gradients(self, output_grad):
+        ...
+
+
 class Dropout(Layer):
     def __init__(self, dropout_rate: float):
         super().__init__()
