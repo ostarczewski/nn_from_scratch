@@ -18,16 +18,16 @@ class SGD(Solver):
         super().__init__(lr)
             
     def apply_gradients(self, layer: Layer, param_grad: dict):
-        # layer will have a empty dict if no params to update
+        # the param_grad dict returned by the layer is empty if there are no parameters to update
         if param_grad:
-            # for each param (weights, biases)
+            # for each param (e.g. weights, biases for dense)
             for param_name, grad in param_grad.items():
-                # access the parameter value (like info about weights)
+                # solevr accesses layer's parameter values (e.g. weight values for dense)
                 param = getattr(layer, param_name)
 
                 # update rule for SGD
                 updated_param = param - self.lr * grad 
 
-                # update param vaues
+                # update param values of the layer
                 setattr(layer, param_name, updated_param)
 

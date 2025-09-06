@@ -26,8 +26,12 @@ class Dense(Layer):
         if self.weights is None:
             if not self.input_size:
                 self.input_size = input.shape[1]
-            # He initialization, N ~ zero avg, sqrt(2/input_size) std
-            self.weights = np.random.normal(0, np.sqrt(2/self.input_size), (self.input_size, self.output_size))
+            # He initialization
+            self.weights = np.random.normal(
+                0,                                   # 0 avg  
+                np.sqrt(2/self.input_size),          # sqrt(2/input_size) std
+                (self.input_size, self.output_size)  # [input,output]
+            )
 
         # store input for backprop when training
         if training:
@@ -54,13 +58,16 @@ class Dense(Layer):
 
 
 class Conv2d(Layer):
-    def __init__(self, channels_in: int, channels_out: int, kernel_size: int):
+    def __init__(self, channels_in: int, channels_out: int, kernel_size: int, padding: int = 0, stride: int = 1):
         super().__init__()
         # expected input dimensions:
         # (batch_size, channels, height, width)
         self.channels_in = channels_in  # number of input channels, 1 - grayscale, 3 - rgb, equal to l-1 channles out
         self.channels_out = channels_out  # number of kernels, also equal to output depth 
         self.kernel_size = kernel_size  # kernel height and width
+
+        self.padding = padding
+        self.stride = stride
 
         # kernel dims:
         # (number of kernels, kernel (=input) depth, height, width)
@@ -79,6 +86,8 @@ class Conv2d(Layer):
 
     def forward(self, input, training):
         ...
+        # tutaj możemy sobie zapisać imput shape, może się przydać do back prop
+        # bo jesli zmienia sie ksztalt w layerze to musimy odpowiedni ksztalt do poprzedniego layera przekazac
 
     def calculate_gradients(self, output_grad):
         ...
@@ -93,13 +102,15 @@ class Dropout(Layer):
     def forward(self, input: np.ndarray, training: bool):
         if training:
             p = self.dropout_rate
+            # new mask generated each forward pass
             self.mask = np.random.binomial(1, 1-p, input.shape)
-            # later can use .astype(input.dtype) with the matrix when dealing with float precission
-            return np.multiply(input, self.mask) / (1-p)  # activation scaling
+            # passes the input through the mask with / (1-p) activation scaling
+            return np.multiply(input, self.mask) / (1-p)
         # inference: full network is used, no dropout
         else:
             return input
 
     def calculate_gradients(self, output_grad: np.ndarray):
+        # only updating the neurons which were not dropped
         return np.multiply(output_grad, self.mask), {}
 
