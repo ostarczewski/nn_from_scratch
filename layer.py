@@ -1,4 +1,6 @@
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
+# from scipy.signal import correlate2d
 
 class Layer:
     def __init__(self):
@@ -79,15 +81,69 @@ class Conv2d(Layer):
             np.sqrt(2/(self.channels_in * self.kernel_size**2)),  # num of features in a kernel = depth * height * width
             self.kernels_shape
         )
-        self.biases = np.zeros(self.channels_out)
+        self.bias = np.zeros(self.channels_out)
+
+
+    def get_striding_windows(self, input_padded, stride: int):
+        batch_size, channels_in, height_pad, width_pad = input_padded.shape
+
+        # calculate H and W out to create output later
+        height_out = (height_pad - self.kernel_size) // stride + 1  # // => floor division
+        width_out = (width_pad - self.kernel_size) // stride + 1
+
+
+        # create striding windows - every possible kH x kW patch
+        shape = (batch_size, channels_in, height_out, width_out, self.kernel_size, self.kernel_size)
+        strides = (
+            # first 4 strides - moving the sliding window accross the input
+            input_padded.strides[0],         # batch strides
+            input_padded.strides[1],         # c_in strides
+            input_padded.strides[2]*stride,  # h_out (row) strides
+            input_padded.strides[3]*stride,  # w_out (col) strides
+            # last 2 strides - moving inside a patch (inside a receptive field)
+            input_padded.strides[2],         # kernel h (row) strides
+            input_padded.strides[3],         # kernel w (col) strides
+        )
+
+        windows = as_strided(input_padded, shape=shape, strides=strides)
+        return windows
         
-        # is it needed?
-        self.input_shape = None
 
     def forward(self, input, training):
-        ...
-        # tutaj możemy sobie zapisać imput shape, może się przydać do back prop
-        # bo jesli zmienia sie ksztalt w layerze to musimy odpowiedni ksztalt do poprzedniego layera przekazac
+
+        # apply padding
+        if self.padding > 0:
+            input_padded = np.pad(
+                input,
+                ((0,0), (0,0), (self.padding, self.padding), (self.padding, self.padding)),  # batch and channels no pad so 0,0
+                mode='constant'  # pad with 0s
+            )
+        else:
+            input_padded = input
+
+        # save input for backprop if training
+        if training:
+            self.input = input_padded
+
+        # striding trick + tensordot implementation
+        # 1. create striding windows
+        windows = self.get_striding_windows(input_padded, self.stride)
+
+        # 2. tensordot + bias
+        # windows: (batch, c_in, h_out, w_out, kH, kW), so axes 1, 4, 5
+        # kernels: (c_out, c_in, kH, kW), so axes 1, 2, 3
+        output = np.tensordot(windows, self.kernels, axes=([1,4,5], [1,2,3]))
+        # this gives us shape (batch_size, h_out, w_out, c_out)
+        # we need (batch_size, c_out, h_out, w_out), so transpose
+        output = output.transpose(0, 3, 1, 2)
+        # add bias
+        output += self.bias[None, :, None, None]  # proper broadcasting to add to channels
+
+        return output
+        
+
+
+
 
     def calculate_gradients(self, output_grad):
         ...
@@ -114,3 +170,26 @@ class Dropout(Layer):
         # only updating the neurons which were not dropped
         return np.multiply(output_grad, self.mask), {}
 
+
+
+
+
+
+
+# old conv forward
+# batch_size, channels_in, height_pad, width_pad = input_padded.shape
+
+# # calculate H and W out to create output later
+# height_out = (height_pad - self.kernel_size) // self.stride + 1  # // => floor division
+# width_out = (width_pad - self.kernel_size) // self.stride + 1
+
+
+# I. simple loop implementation, problem: no way to adjust stride
+# output = np.zeros((batch_size, self.channels_out, height_out, width_out))
+# output += self.bias[None, :, None, None]  # reshape biases to [1, c_out, 1, 1], so it's added properly
+
+# for batch_element in batch_size:
+#     for c_out in self.channels_out:
+#         for c_in in self.channels_in:
+#             output[batch_element, c_out] += correlate2d(input_padded[batch_element, c_in], self.kernels[c_out, c_in], mode='valid')
+        
