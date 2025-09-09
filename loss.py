@@ -27,6 +27,7 @@ class MeanSquaredError(Loss):
         # MSE loss function derivative with respect to predicted vaules y^
         def mse_prime(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
             n = y_true.shape[0]
+            # normalizing over batch size in loss, so later we sum the gradients 
             return -2/n * (y_true - y_pred)
         
         super().__init__(mse, mse_prime)

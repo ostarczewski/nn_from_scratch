@@ -46,11 +46,11 @@ class Dense(Layer):
         # w l * ouput grad calculation to pass the gradient further
         input_grad = np.dot(output_grad, self.weights.T)
 
-        # dot product sums the impact of each individual obs, so we need to divide the matrix by batch size
-        weights_grad = np.dot(self.input.T, output_grad) / self.input.shape[0]
+        # loss derivative already divided grad by batch size
+        weights_grad = np.dot(self.input.T, output_grad)
         
-        # avg grad of each bias over all observation in the batch
-        bias_grad = np.mean(output_grad, axis=0)
+        # sum the contributions of each obs in the batch for each bias
+        bias_grad = np.sum(output_grad, axis=0)
         
         # returns a dict, where key is the param name to be updated by solver
         param_grad = {"weights": weights_grad, "bias": bias_grad}
