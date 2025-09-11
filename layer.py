@@ -84,50 +84,47 @@ class Conv2d(Layer):
         self.bias = np.zeros(self.channels_out)
 
 
-    def get_striding_windows(self, input_padded, stride: int):
-        batch_size, channels_in, height_pad, width_pad = input_padded.shape
+    def get_striding_windows(self, input, stride: int):
+        batch_size, channels_in, height, width = input.shape
 
         # calculate H and W out to create output later
-        height_out = (height_pad - self.kernel_size) // stride + 1  # // => floor division
-        width_out = (width_pad - self.kernel_size) // stride + 1
+        height_out = (height - self.kernel_size) // stride + 1  # // => floor division
+        width_out = (width - self.kernel_size) // stride + 1
 
 
         # create striding windows - every possible kH x kW patch
         shape = (batch_size, channels_in, height_out, width_out, self.kernel_size, self.kernel_size)
         strides = (
             # first 4 strides - moving the sliding window accross the input
-            input_padded.strides[0],         # batch strides
-            input_padded.strides[1],         # c_in strides
-            input_padded.strides[2]*stride,  # h_out (row) strides
-            input_padded.strides[3]*stride,  # w_out (col) strides
+            input.strides[0],         # batch strides
+            input.strides[1],         # c_in strides
+            input.strides[2]*stride,  # h_out (row) strides
+            input.strides[3]*stride,  # w_out (col) strides
             # last 2 strides - moving inside a patch (inside a receptive field)
-            input_padded.strides[2],         # kernel h (row) strides
-            input_padded.strides[3],         # kernel w (col) strides
+            input.strides[2],         # kernel h (row) strides
+            input.strides[3],         # kernel w (col) strides
         )
 
-        windows = as_strided(input_padded, shape=shape, strides=strides)
+        windows = as_strided(input, shape=shape, strides=strides)
         return windows
         
 
     def forward(self, input, training):
-
         # apply padding
         if self.padding > 0:
-            input_padded = np.pad(
+            input = np.pad(
                 input,
                 ((0,0), (0,0), (self.padding, self.padding), (self.padding, self.padding)),  # batch and channels no pad so 0,0
                 mode='constant'  # pad with 0s
             )
-        else:
-            input_padded = input
 
-        # save input for backprop if training
+        # save (padded) input for backprop if training
         if training:
-            self.input = input_padded
+            self.input = input
 
         # striding trick + tensordot implementation
         # 1. create striding windows
-        windows = self.get_striding_windows(input_padded, self.stride)
+        windows = self.get_striding_windows(input, self.stride)
 
         # 2. tensordot + bias
         # windows: (batch, c_in, h_out, w_out, kH, kW), so axes 1, 4, 5
@@ -137,16 +134,68 @@ class Conv2d(Layer):
         # we need (batch_size, c_out, h_out, w_out), so transpose
         output = output.transpose(0, 3, 1, 2)
         # add bias
-        output += self.bias[None, :, None, None]  # proper broadcasting to add to channels
+        output += self.bias[None, :, None, None]  # proper broadcasting to add bias to all neurons per channel
 
         return output
-        
-
-
 
 
     def calculate_gradients(self, output_grad):
-        ...
+        # output grad shape: (batch, c_out, h_out, w_out)
+        input = self.input
+
+        # bias grad sums the output grad across the channel (dim 1 -> c_out)
+        bias_grad = output_grad.sum(0, 2, 3)
+        
+        # kernel (weights) grad - same as in dense layer, an operation between layer input and output_grad
+        # but instead of dot product we do cross corr!
+        input_windows = self.get_striding_windows(input, self.stride)
+        # windows shape: (batch, c_in, h_out, w_out, kH, kW)
+        # output grad shape: (batch, c_out, h_out, w_out)
+        kernels_grad = np.tensordot(input_windows, output_grad, axes=([0,2,3], [0,2,3]))
+        # shape: (c_in, kH, kW, c_out)
+        kernels_grad = kernels_grad.transpose(3, 0, 1, 2)
+        # now shape: (c_out, c_in, kH, kW), matches kernels shape
+
+
+        # input grad
+        kernels_flipped = np.flip(self.kernels, axis=(2,3))  # kernels shape (c_out, c_in, kH, kW), so kH kW
+
+        # inserting 0s between output grad (upsampling) to account for stride
+        # calculate the size of the new output grad matrix
+        if self.stride > 1:
+            rows, cols = output_grad.shape[-2:]  # two last dimensions
+            filled_rows = rows + (rows - 1) * (self.stride - 1)
+            filled_cols = cols + (cols - 1) * (self.stride - 1)
+            filled_output_grad = np.zeros((output_grad.shape[0], output_grad.shape[1], filled_rows, filled_cols))
+            filled_output_grad[:, :, ::self.stride, ::self.stride] = output_grad
+        else:
+            filled_output_grad = output_grad
+
+        # when calculating input_grad, we always pad by k_size-1 allowing for a full convoluction
+        out_grad_pad = self.kernel_size - 1
+        output_grad_padded = np.pad(
+            filled_output_grad, 
+            ((0,0), (0,0), (out_grad_pad, out_grad_pad), (out_grad_pad, out_grad_pad)),
+            mode='constant'
+        )
+
+        output_grad_windows = self.get_striding_windows(output_grad_padded, stride=1)
+        # shape: (batch, c_out, h_in_pad, w_in_pad, kH, kW))
+        # kernels fliped shape: (c_out, c_in, kH, kW)
+        input_grad = np.tensordot(output_grad_windows, kernels_flipped, axes=([1,4,5], [0,2,3]))
+        # this gives us shape (batch, h_in_pad, w_in_pad, c_in)
+        # we need (batch, c_in, h_in, w_in) -> transpose + remove padding to match original input shape
+        input_grad = input_grad.transpose(0, 3, 1, 2)
+
+        # unpad the input grad if padding applied in forward pass
+        if self.padding > 0:
+            input_grad = input_grad[:, :, self.padding:-self.padding, self.padding:-self.padding]
+
+
+        # dict for solver, key = param name
+        param_grad = {"kernels": kernels_grad, "bias": bias_grad}
+        # pass input grad back to l-1, give param grad for solver
+        return input_grad, param_grad
 
 
 class Dropout(Layer):
