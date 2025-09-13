@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-# from scipy.signal import correlate2d
 
 class Layer:
     def __init__(self):
@@ -59,6 +58,28 @@ class Dense(Layer):
         return input_grad, param_grad
 
 
+class Dropout(Layer):
+    def __init__(self, dropout_rate: float):
+        super().__init__()
+        self.dropout_rate = dropout_rate
+        self.mask = None
+
+    def forward(self, input: np.ndarray, training: bool):
+        if training:
+            p = self.dropout_rate
+            # new mask generated each forward pass
+            self.mask = np.random.binomial(1, 1-p, input.shape)
+            # passes the input through the mask with / (1-p) activation scaling
+            return np.multiply(input, self.mask) / (1-p)
+        # inference: full network is used, no dropout
+        else:
+            return input
+
+    def calculate_gradients(self, output_grad: np.ndarray):
+        # only updating the neurons which were not dropped
+        return np.multiply(output_grad, self.mask), {}
+
+
 class Conv2d(Layer):
     def __init__(self, channels_in: int, channels_out: int, kernel_size: int, padding: int = 0, stride: int = 1):
         super().__init__()
@@ -84,7 +105,7 @@ class Conv2d(Layer):
         self.bias = np.zeros(self.channels_out)
 
 
-    def get_striding_windows(self, input, stride: int):
+    def get_striding_windows(self, input: np.ndarray, stride: int):
         batch_size, channels_in, height, width = input.shape
 
         # calculate H and W out to create output later
@@ -109,7 +130,7 @@ class Conv2d(Layer):
         return windows
         
 
-    def forward(self, input, training):
+    def forward(self, input: np.ndarray, training: bool):
         # apply padding
         if self.padding > 0:
             input = np.pad(
@@ -139,7 +160,7 @@ class Conv2d(Layer):
         return output
 
 
-    def calculate_gradients(self, output_grad):
+    def calculate_gradients(self, output_grad: np.ndarray):
         # output grad shape: (batch, c_out, h_out, w_out)
         input = self.input
 
@@ -198,47 +219,18 @@ class Conv2d(Layer):
         return input_grad, param_grad
 
 
-class Dropout(Layer):
-    def __init__(self, dropout_rate: float):
+class Flatten(Layer):
+    def __init__(self):
         super().__init__()
-        self.dropout_rate = dropout_rate
-        self.mask = None
 
     def forward(self, input: np.ndarray, training: bool):
+        # input shape; (batch, c, h, w)
         if training:
-            p = self.dropout_rate
-            # new mask generated each forward pass
-            self.mask = np.random.binomial(1, 1-p, input.shape)
-            # passes the input through the mask with / (1-p) activation scaling
-            return np.multiply(input, self.mask) / (1-p)
-        # inference: full network is used, no dropout
-        else:
-            return input
+            self.input_shape = input.shape
+        # flatten
+        return input.reshape(input.shape[0], -1)  # flatten per each observation
 
     def calculate_gradients(self, output_grad: np.ndarray):
-        # only updating the neurons which were not dropped
-        return np.multiply(output_grad, self.mask), {}
+        return output_grad.reshape(self.input_shape), {}
 
 
-
-
-
-
-
-# old conv forward
-# batch_size, channels_in, height_pad, width_pad = input_padded.shape
-
-# # calculate H and W out to create output later
-# height_out = (height_pad - self.kernel_size) // self.stride + 1  # // => floor division
-# width_out = (width_pad - self.kernel_size) // self.stride + 1
-
-
-# I. simple loop implementation, problem: no way to adjust stride
-# output = np.zeros((batch_size, self.channels_out, height_out, width_out))
-# output += self.bias[None, :, None, None]  # reshape biases to [1, c_out, 1, 1], so it's added properly
-
-# for batch_element in batch_size:
-#     for c_out in self.channels_out:
-#         for c_in in self.channels_in:
-#             output[batch_element, c_out] += correlate2d(input_padded[batch_element, c_in], self.kernels[c_out, c_in], mode='valid')
-        
