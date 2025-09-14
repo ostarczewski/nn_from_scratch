@@ -12,6 +12,7 @@ class Layer:
         pass
 
 
+
 class Dense(Layer):
     def __init__(self, output_size: int, input_size: int = None):
         super().__init__()
@@ -58,6 +59,7 @@ class Dense(Layer):
         return input_grad, param_grad
 
 
+
 class Dropout(Layer):
     def __init__(self, dropout_rate: float):
         super().__init__()
@@ -78,6 +80,7 @@ class Dropout(Layer):
     def calculate_gradients(self, output_grad: np.ndarray):
         # only updating the neurons which were not dropped
         return np.multiply(output_grad, self.mask), {}
+
 
 
 class Conv2d(Layer):
@@ -219,6 +222,96 @@ class Conv2d(Layer):
         return input_grad, param_grad
 
 
+
+class MaxPool2d(Layer):
+    def __init__(self, kernel_size: int = 2, stride: int = 2):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+
+    def forward(self, input: np.ndarray, training: bool):
+        batch_size, channels, height, width = input.shape
+
+        # calculate H and W out to create output later
+        height_out = (height - self.kernel_size) // self.stride + 1
+        width_out = (width - self.kernel_size) // self.stride + 1
+    
+        # we split the input into kH x kW blocks
+        # example: if k = 2, each 2x2 patch becomes a [x0, x1, x2, x3] vector
+        input_reshaped = input.reshape(batch_size, channels, 
+                                       height//self.kernel_size, self.kernel_size, 
+                                       width//self.kernel_size, self.kernel_size)
+        # we get shape (batch, channels, vertical patches num, vert patch height, horizontal patch num, horiz patch width)
+        input_reshaped = input_reshaped.swapaxes(3,4)  # swap so patch num first, patch height/width 2nd
+        
+        input_reshaped = input_reshaped.reshape(batch_size, channels, height_out*width_out, self.kernel_size**2)
+        # shape (batch, channels, total num of patches, patch size flattened)
+        # now we need a max value from each patch
+        output = np.max(input_reshaped, axis=3)
+        # shape (batch, channels, patch_num), for each patch one max val
+
+        # what we need for backward:
+        # input shape
+        # output h, w
+        # max ids, to know which elements the gradients should be passed back to
+        if training:
+            self.input_shape = input.shape
+            self.h_out, self.w_out = height_out, width_out
+            # max ids -> 1 row consists n numbers, where n is number of patches extracted from one channel per one batch item
+            # each number tells us the highest value id in a patch
+            self.max_ids = np.argmax(input_reshaped, axis=3)  # gives us a pointer for passing back the gradients
+            # shape (batch, channels, patch_num)
+
+        # unflatten the max values from patches
+        return output.reshape(batch_size, channels, height_out, width_out)
+    
+
+    def calculate_gradients(self, output_grad: np.ndarray):
+        batch_size, channels, height, width = self.input_shape
+        # flatten max_ids
+        max_ids = self.max_ids.reshape(-1)
+        
+        # initial input grad filled with 0s, those 0s will be modified for max activation neurons
+        # we also need height and width in long 1d format so we can access ids later
+        input_grad_long = np.zeros(self.input_shape).reshape(batch_size, channels, height*width)
+
+        # each patch gets a batch id asigned
+        # the batch num is repeated channels * H_out * W_out times, bc that's the amount of patches in a batch
+        batch_idx = np.repeat(np.arange(batch_size), channels*self.h_out*self.w_out)
+        # channel id gets repeated H_out * W_out times -> amount of patches in a channel
+        # then this pattern is the same across all batches -> np.tile
+        channel_idx = np.tile(np.repeat(np.arange(channels), self.h_out*self.w_out), batch_size)
+        # each patch per batch/channel combination gets an id
+        # so for each batch/channel combination, the pattern 1, ..., P is repeated, where P is the last patch
+        patch_idx = np.tile(np.arange(self.h_out*self.w_out), batch_size*channels)
+
+        # now we calculate which row and column the max obs was in in the original input
+        # row calculation
+        # gets the row starting position of each patch
+        start_row_idx = (patch_idx // self.w_out) * self.stride
+        # adds the information in which row the max activation was for each patch
+        max_row_idx = start_row_idx + (max_ids // self.kernel_size)
+        # column calculation
+        # we use modulo, so that if ouput was 3x3, the first column in patch is on id 0, 3, 6... 
+        start_col_idx = (patch_idx % self.w_out) * self.stride
+        # adds the info about which column the max activation was actually in for each patch
+        max_col_idx = start_col_idx + (max_ids % self.kernel_size)
+
+        # for each patch we get the actual pixel id with the highest activation
+        # max_row_idx * width moves to the start of the row when we're in 1D vector
+        # + max_col_idx moves to the exact column in the row
+        input_max_ids = max_row_idx * width + max_col_idx
+
+        # now each max activation neuron gets assigned a proper gradient, per patch/channel/batch
+        # every output_grad value (or grad for max value for each patch)
+        # gets assigned a proper batch, channel, and place in the patch which max activation was in
+        input_grad_long[batch_idx, channel_idx, input_max_ids] = output_grad.reshape(-1)
+
+        # reshape to the original shape, H * W are now in wide format (2d) not long (1d)
+        return input_grad_long.reshape(self.input_shape), {}
+
+
+
 class Flatten(Layer):
     def __init__(self):
         super().__init__()
@@ -232,5 +325,4 @@ class Flatten(Layer):
 
     def calculate_gradients(self, output_grad: np.ndarray):
         return output_grad.reshape(self.input_shape), {}
-
 
