@@ -168,7 +168,7 @@ class Conv2d(Layer):
         input = self.input
 
         # bias grad sums the output grad across the channel (dim 1 -> c_out)
-        bias_grad = output_grad.sum(0, 2, 3)
+        bias_grad = output_grad.sum((0, 2, 3))
         
         # kernel (weights) grad - same as in dense layer, an operation between layer input and output_grad
         # but instead of dot product we do cross corr!
