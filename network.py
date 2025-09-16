@@ -65,24 +65,30 @@ class Network:
             epochs_without_improvement = 0
             best_layers = copy.deepcopy(self.layers)
 
+        batch_num = dataset.get_batch_num()
 
         # training loop
         for epoch in range(1, epochs+1):
             total_epoch_loss = 0
 
-            for x_train, y_train in dataset:
+            for batch_idx, (x_train, y_train) in enumerate(dataset, start=1):
                 # forward pass
                 y_pred = self.forward(x_train)
 
                 # calculate loss
-                total_epoch_loss += np.sum(self.loss.get_loss(y_train, y_pred, vectorized=True))  # sum of all the errors from each observation 
+                batch_loss = np.sum(self.loss.get_loss(y_train, y_pred, vectorized=True))  # sum of all the errors from each observation 
+                total_epoch_loss += batch_loss
 
                 # backward pass
                 self.backward(y_train, y_pred)
 
+                if verbose:
+                    print(f"Epoch {epoch}/{epochs}, batch {batch_idx}/{batch_num} - Batch Loss: {batch_loss/dataset.batch_size:.6f}", end='\r', flush=True)
+
             avg_epoch_loss = total_epoch_loss / len(dataset)  # works even for smaller last batch
 
             if verbose:
+                print(" "*64, end='\r', flush=True)  # clear the line
                 print(f"Epoch {epoch}/{epochs} - Train Loss: {avg_epoch_loss:.6f}")
             history['loss'].append(avg_epoch_loss)
 

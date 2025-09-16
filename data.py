@@ -36,3 +36,9 @@ class Dataset:
     
     def __getitem__(self, index):
         return self.x[index], self.y[index]
+    
+    def get_batch_num(self):
+        if self.drop_last:
+            return len(self.x) // self.batch_size
+        else:
+            return -(-len(self.x) // self.batch_size)
