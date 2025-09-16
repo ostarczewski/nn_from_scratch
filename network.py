@@ -48,7 +48,9 @@ class Network:
         # store loss values from training
         history = {
             'loss': [],
-            'val_loss': []
+            'val_loss': [],
+            'acc': [],
+            'val_acc': [],
         }
 
         # check if early stopping is active
@@ -70,6 +72,7 @@ class Network:
         # training loop
         for epoch in range(1, epochs+1):
             total_epoch_loss = 0
+            total_correct = 0
 
             for batch_idx, (x_train, y_train) in enumerate(dataset, start=1):
                 # forward pass
@@ -79,33 +82,45 @@ class Network:
                 batch_loss = np.sum(self.loss.get_loss(y_train, y_pred, vectorized=True))  # sum of all the errors from each observation 
                 total_epoch_loss += batch_loss
 
+                # calculate acc
+                batch_correct = np.sum(np.argmax(y_pred, axis=1) == np.argmax(y_train, axis=1))
+                # batch total to batch size, acc to batch_correct / batch size
+                total_correct += batch_correct
+
+
                 # backward pass
                 self.backward(y_train, y_pred)
 
                 if verbose:
-                    print(f"Epoch {epoch}/{epochs}, batch {batch_idx}/{batch_num} - Batch Loss: {batch_loss/dataset.batch_size:.6f}", end='\r', flush=True)
+                    print(f"Epoch {epoch}/{epochs} - Batch Loss: {batch_loss/dataset.batch_size:.6f}, Batch acc: {batch_correct/dataset.batch_size:.4f} - batch {batch_idx}/{batch_num}",
+                          end='\r', flush=True)
 
             avg_epoch_loss = total_epoch_loss / len(dataset)  # works even for smaller last batch
+            avg_epoch_acc = total_correct / len(dataset)
 
             if verbose:
-                print(" "*64, end='\r', flush=True)  # clear the line
-                print(f"Epoch {epoch}/{epochs} - Train Loss: {avg_epoch_loss:.6f}")
+                print(" "*80, end='\r', flush=True)  # clear the line
+                print(f"Epoch {epoch}/{epochs} - Train Loss: {avg_epoch_loss:.6f}, Train Acc: {avg_epoch_acc:.4f}")
             history['loss'].append(avg_epoch_loss)
-
+            history['acc'].append(avg_epoch_acc)
 
             # validation data evaluation
             if val_dataset:
                 total_val_epoch_loss = 0
+                total_val_correct = 0
 
                 for x_val, y_val in val_dataset:
                     y_pred = self.predict(x_val)
                     total_val_epoch_loss += np.sum(self.loss.get_loss(y_val, y_pred, vectorized=True))
+                    total_val_correct += np.sum(np.argmax(y_pred, axis=1) == np.argmax(y_val, axis=1))
                 
                 avg_epoch_val_loss = total_val_epoch_loss / len(val_dataset)
+                avg_epoch_val_acc = total_val_correct / len(val_dataset)
 
                 if verbose:
-                    print(f"Validation Loss: {avg_epoch_val_loss:.6f}")
+                    print(f"Validation Loss: {avg_epoch_val_loss:.6f}, acc: {avg_epoch_val_acc:.4f}")
                 history['val_loss'].append(avg_epoch_val_loss)
+                history['val_acc'].append(avg_epoch_val_acc)
 
 
                 # storing loss values for early stoping and best network parameter tracking
