@@ -2,10 +2,10 @@ import numpy as np
 from layer import Layer
 
 class Activation(Layer):
-    def __init__(self, activation, activation_prime):
+    def __init__(self):
         super().__init__()
-        self.activation = activation
-        self.activation_prime = activation_prime
+        # self.activation = activation
+        # self.activation_prime = activation_prime
 
     def forward(self, input, training):
         if training:
@@ -19,26 +19,52 @@ class Activation(Layer):
 
 class ReLU(Activation):
     def __init__(self):
-        def relu(x):
-            return np.maximum(0, x)
+        super().__init__()
 
-        def relu_prime(x):
-            return np.where(x > 0, 1, 0)
-        
-        super().__init__(relu, relu_prime)
+    def activation(self, x):
+        return np.maximum(0, x)
+
+    def activation_prime(self, x):
+        return np.where(x > 0, 1, 0)
 
 
 class LeakyReLU(Activation):
-    def __init__(self, slope = 0.01):
+    def __init__(self, slope=0.01):
+        super().__init__()
         self.slope = slope
 
-        def leaky_relu(x):
-            return self.slope * np.minimum(0, x) + np.maximum(0, x)
+    def activation(self, x):
+        return np.where(x > 0, x, self.slope * x)
 
-        def leaky_relu_prime(x):
-            return np.where(x > 0, 1, self.slope)
+    def activation_prime(self, x):
+        return np.where(x > 0, 1, self.slope)
+
+
+# class ReLU(Activation):
+#     def __init__(self):
+#         def relu(x):
+#             return np.maximum(0, x)
+
+#         def relu_prime(x):
+#             return np.where(x > 0, 1, 0)
         
-        super().__init__(leaky_relu, leaky_relu_prime)
+#         super().__init__(relu, relu_prime)
+
+
+# class LeakyReLU(Activation):
+#     def __init__(self, slope = 0.01):
+#         self.slope = slope
+
+#         def leaky_relu(x):
+#             return self.slope * np.minimum(0, x) + np.maximum(0, x)
+
+#         def leaky_relu_prime(x):
+#             return np.where(x > 0, 1, self.slope)
+        
+#         super().__init__(leaky_relu, leaky_relu_prime)
+
+
+
 
 # TODO argument if one value should be used across all channels?
 # będą komplikacje z tym 

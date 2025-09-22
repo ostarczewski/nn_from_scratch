@@ -139,18 +139,24 @@ class Network:
             # early stopping check
             if early_stopping_active:
                 if epochs_without_improvement >= patience:
+                    self.early_stopped = {}
                     if verbose:
                         print(f"Early stopping at epoch {epoch} - no validation loss improvemnt for {patience} epochs")
+                    self.early_stopped['epoch_stopped'] = epoch
+                        
 
                     # restores best params
                     if restore_best_parameters:
                         self.layers = copy.deepcopy(best_layers)
                         if verbose:
                             print(f"Network parameter values reverted to epoch {epoch-patience}")
+                        self.early_stopped['epoch_params'] = epoch-patience
                     
                     # exits the training loop
                     break
 
+        # save hist
+        self.history = history
         # return loss values
         return history
 

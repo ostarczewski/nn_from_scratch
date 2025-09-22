@@ -61,7 +61,7 @@ class Dense(Layer):
 
 
 class Dropout(Layer):
-    def __init__(self, dropout_rate: float):
+    def __init__(self, dropout_rate: float = 0.5):
         super().__init__()
         self.dropout_rate = dropout_rate
         self.mask = None
