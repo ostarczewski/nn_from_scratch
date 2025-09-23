@@ -111,11 +111,10 @@ def transform_mnist(img):
 
 
 def transform_mnist_dataset(X):
-    batch, channel, H, W = X.shape
+    batch = X.shape[0]
     X_aug = np.empty_like(X, dtype=np.float32)  # preallocate output
 
     for i in range(batch):
-        # If single channel, we can just pass X[i,0]; if multi-channel, could loop over channels
         X_aug[i, 0] = transform_mnist(X[i, 0])
 
     return X_aug
@@ -140,11 +139,34 @@ def transform_f_mnist(img):
 
 
 def transform_f_mnist_dataset(X):
-    batch, channel, H, W = X.shape
+    batch = X.shape[0]
     X_aug = np.empty_like(X, dtype=np.float32)  # preallocate output
 
     for i in range(batch):
-        # If single channel, we can just pass X[i,0]; if multi-channel, could loop over channels
         X_aug[i, 0] = transform_f_mnist(X[i, 0])
 
     return X_aug
+
+
+def transform_cifar(img):
+    # random shift & scale
+    tform = AffineTransform(
+        translation=(np.random.uniform(-4, 4), np.random.uniform(-4, 4))
+    )
+    img = warp(img, tform.inverse, mode="constant")
+
+    if np.random.random() < 0.5:
+        img = np.fliplr(img)
+
+    return img.astype(np.float32)
+
+
+def transform_cifar_dataset(X: np.ndarray):
+    batch = X.shape[0]
+    X = X.transpose(0, 2, 3, 1)  # C last
+    X_aug = np.empty_like(X, dtype=np.float32)  # preallocate output
+
+    for i in range(batch):
+        X_aug[i] = transform_cifar(X[i])
+
+    return X_aug.transpose(0, 3, 1, 2)  # back to C first
