@@ -7,7 +7,7 @@ from typing import Tuple
 
 class Solver:
     def __init__(self, lr: float):
-        self.lr = lr
+        self.lr = np.float32(lr)
 
     def apply_gradients(self, layer: Layer, param_grad: dict):
         pass

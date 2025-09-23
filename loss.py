@@ -25,7 +25,8 @@ class MeanSquaredError(Loss):
     def loss_prime(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         n = y_true.shape[0]
         # normalizing over batch size in loss, so later we sum the gradients 
-        return -2/n * (y_true - y_pred)
+        grad = -2/n * (y_true - y_pred)
+        return grad.astype(np.float32)
         
 
 
@@ -55,7 +56,8 @@ class CrossEntropyLoss(Loss):
         y_pred = self.softmax(y_pred)
         n = y_true.shape[0]
         # loss grad normalized by batch size, returns a matrix
-        return (y_pred - y_true) / n
+        grad = (y_pred - y_true) / n
+        return grad.astype(np.float32)
         
     
 

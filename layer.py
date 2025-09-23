@@ -19,7 +19,7 @@ class Dense(Layer):
         self.output_size = output_size
         self.input_size = input_size
 
-        self.bias = np.zeros(self.output_size)
+        self.bias = np.zeros(self.output_size, dtype=np.float32)
         self.weights = None
 
 
@@ -30,10 +30,10 @@ class Dense(Layer):
                 self.input_size = input.shape[1]
             # He initialization
             self.weights = np.random.normal(
-                0,                                   # 0 avg  
-                np.sqrt(2/self.input_size),          # sqrt(2/input_size) std
-                (self.input_size, self.output_size)  # [input,output]
-            )
+                0,                                    # 0 avg  
+                np.sqrt(2/self.input_size),           # sqrt(2/input_size) std
+                (self.input_size, self.output_size),  # [input,output]
+            ).astype(np.float32)
 
         # store input for backprop when training
         if training:
@@ -68,9 +68,9 @@ class Dropout(Layer):
 
     def forward(self, input: np.ndarray, training: bool):
         if training:
-            p = self.dropout_rate
+            p = np.float32(self.dropout_rate)
             # new mask generated each forward pass
-            self.mask = np.random.binomial(1, 1-p, input.shape)
+            self.mask = np.random.binomial(1, 1-p, input.shape).astype(np.float32)
             # passes the input through the mask with / (1-p) activation scaling
             return np.multiply(input, self.mask) / (1-p)
         # inference: full network is used, no dropout
@@ -104,8 +104,9 @@ class Conv2d(Layer):
             0, 
             np.sqrt(2/(self.channels_in * self.kernel_size**2)),  # num of features in a kernel = depth * height * width
             self.kernels_shape
-        )
-        self.bias = np.zeros(self.channels_out)
+        ).astype(np.float32)
+
+        self.bias = np.zeros(self.channels_out).astype(np.float32)
 
 
     def get_striding_windows(self, input: np.ndarray, stride: int):
@@ -273,7 +274,7 @@ class MaxPool2d(Layer):
         
         # initial input grad filled with 0s, those 0s will be modified for max activation neurons
         # we also need height and width in long 1d format so we can access ids later
-        input_grad_long = np.zeros(self.input_shape).reshape(batch_size, channels, height*width)
+        input_grad_long = np.zeros(self.input_shape, dtype=np.float32).reshape(batch_size, channels, height*width)
 
         # each patch gets a batch id asigned
         # the batch num is repeated channels * H_out * W_out times, bc that's the amount of patches in a batch

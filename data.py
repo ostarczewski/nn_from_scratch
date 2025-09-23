@@ -1,13 +1,16 @@
 import numpy as np
+from collections.abc import Callable
 
 class Dataset:
-    def __init__(self, x: np.ndarray, y: np.ndarray, batch_size: int = 32, shuffle: bool = True, drop_last: bool = False):
+    def __init__(self, x: np.ndarray, y: np.ndarray, batch_size: int = 32, shuffle: bool = True, drop_last: bool = False,
+                 transform: Callable = None):
         self.x = x
         self.y = y
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.drop_last = drop_last
         self.data_indexes = np.arange(len(self.x))
+        self.transform = transform
 
 
     def __iter__(self):
@@ -28,7 +31,13 @@ class Dataset:
 
             batch_indexes = self.data_indexes[batch_start:batch_end]  # bierze wycinki z array z indeksami
 
-            yield self.x[batch_indexes], self.y[batch_indexes]
+            X_batch = self.x[batch_indexes]
+            y_batch = self.y[batch_indexes]
+
+            if self.transform is not None:
+                X_batch = self.transform(X_batch)
+
+            yield X_batch, y_batch
 
     
     def __len__(self):
