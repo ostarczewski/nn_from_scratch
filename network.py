@@ -44,7 +44,7 @@ class Network:
 
 
     def train(self, dataset: Dataset, epochs: int, val_dataset: Dataset = None, early_stopping: dict = None, 
-              verbose: bool = True):
+              verbose: bool = True) -> dict:
         # store loss values from training
         history = {
             'loss': [],
@@ -159,6 +159,16 @@ class Network:
         self.history = history
         # return loss values
         return history
+    
+
+    def param_count(self) -> int:
+        param_count = 0
+        for obj in self.layers:
+            for attr_name, attr_value in vars(obj).items():
+                if attr_name in ('weights', 'kernels', 'bias'):
+                    param_count += len(attr_value.flatten())
+
+        return param_count
 
 
 
